@@ -236,6 +236,24 @@
 
     </div>
 
+  <div class="section">
+    <h3>📊 Farmer Sales Performance</h3>
+
+    <div style="margin-bottom: 20px;">
+        <button type="button" onclick="changeSalesPeriod('day')" class="sales-filter">Day</button>
+        <button type="button" onclick="changeSalesPeriod('week')" class="sales-filter">Week</button>
+        <button type="button" onclick="changeSalesPeriod('month')" class="sales-filter">Month</button>
+    </div>
+
+    <div style="width: 100%; height: 350px;">
+        <canvas id="farmerSalesChart"></canvas>
+    </div>
+
+    @if($farmerSales->isEmpty())
+        <p class="empty">No farmer sales data available yet.</p>
+    @endif
+</div>
+
     <div class="section">
         <h3>📋 Recent Marketplace Orders</h3>
 
@@ -337,6 +355,112 @@
         </table>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const salesData = @json($farmerSales);
+
+    const ctx = document.getElementById('farmerSalesChart');
+
+    let farmerSalesChart;
+
+    function changeSalesPeriod(period) {
+        const now = new Date();
+
+        let labels = [];
+        let totals = [];
+
+        if (period === 'day') {
+            labels = Array.from({ length: 24 }, (_, i) =>
+                String(i).padStart(2, '0') + ':00'
+            );
+            totals = Array(24).fill(0);
+        }
+
+        if (period === 'week') {
+            labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday',
+                      'Thursday', 'Friday', 'Saturday'];
+            totals = Array(7).fill(0);
+        }
+
+        if (period === 'month') {
+            const days = new Date(
+                now.getFullYear(),
+                now.getMonth() + 1,
+                0
+            ).getDate();
+
+            labels = Array.from({ length: days }, (_, i) => i + 1);
+            totals = Array(days).fill(0);
+        }
+
+        salesData.forEach(sale => {
+            const date = new Date(sale.sale_date);
+
+            if (
+                date.getFullYear() !== now.getFullYear() ||
+                date.getMonth() !== now.getMonth()
+            ) {
+                if (period === 'month') return;
+            }
+
+            if (period === 'day') {
+                if (date.toDateString() === now.toDateString()) {
+                    totals[date.getHours()] += Number(sale.total_sales);
+                }
+            }
+
+            if (period === 'week') {
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+                if (date >= startOfWeek && date < endOfWeek) {
+                    totals[date.getDay()] += Number(sale.total_sales);
+                }
+            }
+
+            if (period === 'month') {
+                totals[date.getDate() - 1] += Number(sale.total_sales);
+            }
+        });
+
+        if (farmerSalesChart) {
+            farmerSalesChart.destroy();
+        }
+
+        farmerSalesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Farmer Sales (₱)',
+                    data: totals,
+                    backgroundColor: '#246b45',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => '₱' + value.toLocaleString()
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    changeSalesPeriod('day');
+</script>
 
 </body>
 </html>

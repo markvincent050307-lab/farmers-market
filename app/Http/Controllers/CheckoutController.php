@@ -20,12 +20,18 @@ class CheckoutController extends Controller
         abort_unless(Auth::user()->role === 'customer', 403);
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:gcash,cod'],
-        ]);
+    'payment_method' => ['required', 'in:gcash,cod'],
+    'delivery_address' => ['required', 'string', 'max:1000'],
+    'contact_number' => ['required', 'string', 'max:30'],
+]);
+
+$paymentMethod = $validated['payment_method'];
+$deliveryAddress = $validated['delivery_address'];
+$contactNumber = $validated['contact_number'];
 
         $paymentMethod = $validated['payment_method'];
 
-        $order = DB::transaction(function () use ($paymentMethod) {
+        $order = DB::transaction(function () use ($paymentMethod, $deliveryAddress, $contactNumber) {
             $cartItems = CartItem::where('user_id', Auth::id())
                 ->get();
 
@@ -82,18 +88,15 @@ class CheckoutController extends Controller
                 ];
             }
 
-            $order = Order::create([
-                'user_id' => Auth::id(),
-                'total_amount' => number_format(
-                    $totalCents / 100,
-                    2,
-                    '.',
-                    ''
-                ),
-                'status' => 'pending',
-                'payment_method' => $paymentMethod,
-                'payment_status' => 'unpaid',
-            ]);
+           $order = Order::create([
+    'user_id' => Auth::id(),
+    'total_amount' => number_format($totalCents / 100, 2, '.', ''),
+    'status' => 'pending',
+    'payment_method' => $paymentMethod,
+    'payment_status' => 'unpaid',
+    'delivery_address' => $deliveryAddress,
+    'contact_number' => $contactNumber,
+]);
 
             foreach ($itemsToOrder as $item) {
                 OrderItem::create([

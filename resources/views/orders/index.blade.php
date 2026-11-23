@@ -165,9 +165,13 @@
 
                 <p>
                     <strong>Payment Status:</strong><br>
-                    <span class="status payment-{{ strtolower($order->payment_status ?? 'unpaid') }}">
-                        {{ ucfirst($order->payment_status ?? 'unpaid') }}
-                    </span>
+                   <span class="status payment-{{ strtolower($order->payment_status ?? 'unpaid') }}">
+    @if(strtolower($order->payment_status ?? '') === 'paid')
+        <span style="font-weight: bold;">✓</span> Paid
+    @else
+        {{ ucfirst($order->payment_status ?? 'unpaid') }}
+    @endif
+</span>
                 </p>
 
                 <p>

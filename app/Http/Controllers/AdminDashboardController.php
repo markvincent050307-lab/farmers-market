@@ -37,6 +37,20 @@ class AdminDashboardController extends Controller
         $totalProductsSold = (clone $completedItems)
             ->sum('quantity');
 
+        $farmerSales = OrderItem::select(
+        'users.name as farmer_name',
+        DB::raw('(order_items.price * order_items.quantity) as total_sales'),
+        'orders.created_at as sale_date'
+    )
+    ->join('users', 'users.id', '=', 'order_items.farmer_id')
+    ->join('orders', 'orders.id', '=', 'order_items.order_id')
+    ->where('users.role', 'farmer')
+    ->where('order_items.status', 'completed')
+    ->where(function ($query) {
+        $query->where('orders.payment_status', 'paid')
+            ->orWhere('orders.payment_method', 'cod');
+    })
+    ->get();
         $completedOrders = OrderItem::where('status', 'completed')
             ->distinct('order_id')
             ->count('order_id');
@@ -65,6 +79,7 @@ $recentLogins = User::whereNotNull('last_login_at')
             'totalProducts',
             'totalOrders',
             'totalSales',
+            'farmerSales',
             'totalProductsSold',
             'completedOrders',
             'pendingOrders',

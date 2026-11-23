@@ -92,9 +92,38 @@ Route::put('/products/{product}', [ProductController::class, 'update'])
     Route::post('/products', [ProductController::class, 'store'])
         ->name('products.store');
 });
+// AgriPulse Terms and Privacy Policy
+Route::view('/terms', 'legal.terms')->name('terms');
 
+Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::get('/', function () {
-    return view('welcome');
+
+    $totalFarmers = \App\Models\User::where('role', 'farmer')->count();
+
+    $availableProducts = \App\Models\Product::where('quantity', '>', 0)
+        ->where(function ($query) {
+            $query->whereNull('expiration_date')
+                  ->orWhereDate('expiration_date', '>=', today());
+        });
+
+    $totalProducts = (clone $availableProducts)->count();
+
+    $latestProducts = (clone $availableProducts)
+        ->with('farmer')
+        ->latest()
+        ->take(6)
+        ->get();
+
+    $totalCompletedOrders = \App\Models\Order::whereHas('items', function ($query) {
+        $query->where('status', 'completed');
+    })->count();
+
+    return view('welcome', compact(
+        'totalFarmers',
+        'totalProducts',
+        'totalCompletedOrders',
+        'latestProducts'
+    ));
 });
 
 Route::get('/admin/products', [AdminProductController::class, 'index'])
@@ -226,6 +255,74 @@ Route::get('/dashboard', function () {
             })
             ->sum(\Illuminate\Support\Facades\DB::raw('price * quantity'));
 
+         // Sales data for the farmer's graph
+$salesChartItems = (clone $orderItems)
+    ->with('order')
+    ->where('status', 'completed')
+    ->whereHas('order', function ($query) {
+        $query->where(function ($paymentQuery) {
+            $paymentQuery->where('payment_status', 'paid')
+                         ->orWhere('payment_method', 'cod');
+        });
+    })
+    ->get();
+
+// Daily graph: last 7 days
+$dailyChart = collect(range(6, 0))->map(function ($daysAgo) use ($salesChartItems) {
+    $date = now()->subDays($daysAgo)->startOfDay();
+
+    $sales = $salesChartItems->filter(function ($item) use ($date) {
+        return $item->order->created_at->isSameDay($date);
+    })->sum(function ($item) {
+        return $item->price * $item->quantity;
+    });
+
+    return [
+        'label' => $date->format('M d'),
+        'sales' => $sales
+    ];
+})->values();
+
+// Weekly graph: last 4 weeks
+$weeklyChart = collect(range(3, 0))->map(function ($weeksAgo) use ($salesChartItems) {
+    $start = now()->subWeeks($weeksAgo)->startOfWeek();
+    $end = $start->copy()->endOfWeek();
+
+    $sales = $salesChartItems->filter(function ($item) use ($start, $end) {
+        return $item->order->created_at->between($start, $end);
+    })->sum(function ($item) {
+        return $item->price * $item->quantity;
+    });
+
+    return [
+        'label' => $start->format('M d'),
+        'sales' => $sales
+    ];
+})->values();
+
+// Monthly graph: last 6 months
+$monthlyChart = collect(range(5, 0))->map(function ($monthsAgo) use ($salesChartItems) {
+    $date = now()->subMonths($monthsAgo);
+
+    $sales = $salesChartItems->filter(function ($item) use ($date) {
+        return $item->order->created_at->month === $date->month
+            && $item->order->created_at->year === $date->year;
+    })->sum(function ($item) {
+        return $item->price * $item->quantity;
+    });
+
+    return [
+        'label' => $date->format('M Y'),
+        'sales' => $sales
+    ];
+})->values();
+
+$salesChartData = [
+    'daily' => $dailyChart,
+    'weekly' => $weeklyChart,
+    'monthly' => $monthlyChart
+];
+
         $bestSellingProducts = \App\Models\OrderItem::select(
                 'product_id',
                 \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_quantity')
@@ -250,7 +347,7 @@ Route::get('/dashboard', function () {
     ->orderBy('expiration_date', 'asc')
     ->get();
 
-      return view('farmer-dashboard', compact(
+     return view('farmer-dashboard', compact(
     'totalProducts',
     'lowStockProducts',
     'totalOrders',
@@ -261,13 +358,28 @@ Route::get('/dashboard', function () {
     'dailySales',
     'weeklySales',
     'monthlySales',
+    'salesChartData',
     'bestSellingProducts',
     'recentOrders',
     'expirationProducts'
 ));
     }
 
-    return view('customer-dashboard');
+    $customerOrders = \App\Models\Order::where('user_id', $user->id)->count();
+
+$customerCartItems = \App\Models\CartItem::where('user_id', $user->id)->count();
+
+$customerCartQuantity = \App\Models\CartItem::where('user_id', $user->id)
+    ->sum('quantity');
+
+$customerWishlist = \App\Models\Wishlist::where('user_id', $user->id)->count();
+
+return view('customer-dashboard', compact(
+    'customerOrders',
+    'customerCartItems',
+    'customerCartQuantity',
+    'customerWishlist'
+));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

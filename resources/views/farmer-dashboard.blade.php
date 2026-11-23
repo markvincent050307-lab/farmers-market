@@ -50,7 +50,223 @@
                     </div>
                 </div>
             </div>
+{{-- Farmer Sales Graph --}}
+<section class="mb-6 overflow-hidden rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
 
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-gray-800">
+                📈 My Sales Performance
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+                Track your completed and paid sales over time.
+            </p>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="button" data-period="daily"
+                class="sales-filter rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white">
+                Day
+            </button>
+
+            <button type="button" data-period="weekly"
+                class="sales-filter rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-green-100">
+                Week
+            </button>
+
+            <button type="button" data-period="monthly"
+                class="sales-filter rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-green-100">
+                Month
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-6" style="height: 320px;">
+        <canvas id="farmerSalesChart"></canvas>
+    </div>
+
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const salesData = @json($salesChartData);
+
+    const ctx = document.getElementById('farmerSalesChart');
+
+    if (!ctx || typeof Chart === 'undefined') {
+        return;
+    }
+
+    let currentPeriod = 'daily';
+
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+
+        data: {
+            labels: salesData.daily.map(item => item.label),
+
+            datasets: [{
+                label: 'Sales (₱)',
+                data: salesData.daily.map(item => item.sales),
+                borderColor: '#15803d',
+                backgroundColor: 'rgba(21, 128, 61, 0.12)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#15803d'
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '₱' + Number(context.raw).toLocaleString('en-PH', {
+                                minimumFractionDigits: 2
+                            });
+                        }
+                    }
+                }
+            },
+
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₱' + Number(value).toLocaleString('en-PH');
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    document.querySelectorAll('.sales-filter').forEach(button => {
+
+        button.addEventListener('click', function () {
+
+            currentPeriod = this.dataset.period;
+
+            document.querySelectorAll('.sales-filter').forEach(btn => {
+                btn.classList.remove('bg-green-700', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+            });
+
+            this.classList.remove('bg-gray-100', 'text-gray-600');
+            this.classList.add('bg-green-700', 'text-white');
+
+            const selectedData = salesData[currentPeriod];
+
+            salesChart.data.labels = selectedData.map(item => item.label);
+            salesChart.data.datasets[0].data = selectedData.map(item => item.sales);
+
+            salesChart.update();
+        });
+
+    });
+
+});
+</script>
+
+            {{-- Best-Selling Products --}}
+            <section class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+                <div class="flex flex-col gap-2 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">
+                            🥬 Best-Selling Products
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Your top five products by quantity sold.
+                        </p>
+                    </div>
+
+                    <a href="{{ route('products.index') }}"
+                       class="text-sm font-semibold text-green-700 hover:text-green-900">
+                        View My Products →
+                    </a>
+                </div>
+
+                @if ($bestSellingProducts->isNotEmpty())
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">
+    Order ID
+</th>
+                                    <th class="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">
+                                        Rank
+                                    </th>
+                                    <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">
+                                        Product
+                                    </th>
+                                    <th class="whitespace-nowrap px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-gray-500">
+                                        Quantity Sold
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach ($bestSellingProducts as $item)
+                                    <tr class="transition hover:bg-green-50">
+                                       <td class="whitespace-nowrap px-6 py-4">
+    <div class="font-semibold text-green-700">
+        #{{ $item->order_id }}
+    </div>
+
+    <a href="{{ route('farmer.orders.index') }}"
+       class="mt-1 inline-block text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+        View Orders →
+    </a>
+</td>
+                                        <td class="whitespace-nowrap px-6 py-4">
+                                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-green-100 font-bold text-green-800">
+                                                {{ $loop->iteration }}
+                                            </span>
+                                        </td>
+
+                                        <td class="px-6 py-4">
+                                            <span class="font-semibold text-gray-800">
+                                                {{ $item->product->name ?? 'Product no longer available' }}
+                                            </span>
+                                        </td>
+
+                                        <td class="whitespace-nowrap px-6 py-4 text-right">
+                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+                                                {{ $item->total_quantity }} sold
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="px-6 py-12 text-center">
+                        <div class="mb-3 text-5xl">🌱</div>
+                        <h4 class="font-semibold text-gray-800">
+                            No completed product sales yet
+                        </h4>
+                        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+                            Your best-selling products will appear here when
+                            customers' orders containing your products are completed.
+                        </p>
+                    </div>
+                @endif
+            </section>
             {{-- Sales Overview --}}
 <section>
     <div class="mb-5">
@@ -70,7 +286,7 @@
         </p>
     </div>
 
-                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
                  {{-- Total Products --}}
                     <div class="rounded-xl border border-purple-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -122,66 +338,6 @@
                             Based on your existing sales calculation
                         </p>
                     </div>
-
-                    {{-- Daily Sales --}}
-<div class="rounded-xl border border-teal-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-    <div class="flex items-center justify-between">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-2xl">
-            📅
-        </div>
-        <span class="text-xs font-semibold uppercase tracking-wide text-teal-700">
-            Today
-        </span>
-    </div>
-
-    <p class="mt-5 text-sm font-medium text-gray-500">
-        Today's Sales
-    </p>
-
-    <p class="mt-2 break-words text-2xl font-bold text-teal-800">
-        ₱{{ number_format($dailySales, 2) }}
-    </p>
-</div>
-
-{{-- Weekly Sales --}}
-<div class="rounded-xl border border-indigo-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-    <div class="flex items-center justify-between">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-2xl">
-            📊
-        </div>
-        <span class="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-            This Week
-        </span>
-    </div>
-
-    <p class="mt-5 text-sm font-medium text-gray-500">
-        Weekly Sales
-    </p>
-
-    <p class="mt-2 break-words text-2xl font-bold text-indigo-800">
-        ₱{{ number_format($weeklySales, 2) }}
-    </p>
-</div>
-
-{{-- Monthly Sales --}}
-<div class="rounded-xl border border-orange-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-    <div class="flex items-center justify-between">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-2xl">
-            🗓️
-        </div>
-        <span class="text-xs font-semibold uppercase tracking-wide text-orange-700">
-            This Month
-        </span>
-    </div>
-
-    <p class="mt-5 text-sm font-medium text-gray-500">
-        Monthly Sales
-    </p>
-
-    <p class="mt-2 break-words text-2xl font-bold text-orange-800">
-        ₱{{ number_format($monthlySales, 2) }}
-    </p>
-</div>
 
 
                     {{-- Total Orders --}}
@@ -331,8 +487,8 @@
                             $expirationDate = \Carbon\Carbon::parse($product->expiration_date);
                             $daysRemaining = $today->diffInDays($expirationDate, false);
 
-                            if ($daysRemaining < 0) {
-                                $freshnessStatus = 'Expired';
+                           if ($daysRemaining <= 0) {
+    $freshnessStatus = 'Expired';
                                 $freshnessClass = 'bg-red-100 text-red-700';
                             } elseif ($daysRemaining <= 7) {
                                 $freshnessStatus = 'Expiring Soon';
@@ -586,92 +742,7 @@
 
 </section>
 
-            {{-- Best-Selling Products --}}
-            <section class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-                <div class="flex flex-col gap-2 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">
-                            🥬 Best-Selling Products
-                        </h3>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Your top five products by quantity sold.
-                        </p>
-                    </div>
 
-                    <a href="{{ route('products.index') }}"
-                       class="text-sm font-semibold text-green-700 hover:text-green-900">
-                        View My Products →
-                    </a>
-                </div>
-
-                @if ($bestSellingProducts->isNotEmpty())
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">
-    Order ID
-</th>
-                                    <th class="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">
-                                        Rank
-                                    </th>
-                                    <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">
-                                        Product
-                                    </th>
-                                    <th class="whitespace-nowrap px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-gray-500">
-                                        Quantity Sold
-                                    </th>
-                                </tr>
-                            </thead>
-
-                            <tbody class="divide-y divide-gray-100">
-                                @foreach ($bestSellingProducts as $item)
-                                    <tr class="transition hover:bg-green-50">
-                                       <td class="whitespace-nowrap px-6 py-4">
-    <div class="font-semibold text-green-700">
-        #{{ $item->order_id }}
-    </div>
-
-    <a href="{{ route('farmer.orders.index') }}"
-       class="mt-1 inline-block text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">
-        View Orders →
-    </a>
-</td>
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-green-100 font-bold text-green-800">
-                                                {{ $loop->iteration }}
-                                            </span>
-                                        </td>
-
-                                        <td class="px-6 py-4">
-                                            <span class="font-semibold text-gray-800">
-                                                {{ $item->product->name ?? 'Product no longer available' }}
-                                            </span>
-                                        </td>
-
-                                        <td class="whitespace-nowrap px-6 py-4 text-right">
-                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
-                                                {{ $item->total_quantity }} sold
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="px-6 py-12 text-center">
-                        <div class="mb-3 text-5xl">🌱</div>
-                        <h4 class="font-semibold text-gray-800">
-                            No completed product sales yet
-                        </h4>
-                        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-                            Your best-selling products will appear here when
-                            customers' orders containing your products are completed.
-                        </p>
-                    </div>
-                @endif
-            </section>
 
             {{-- Marketplace Management --}}
             <section>

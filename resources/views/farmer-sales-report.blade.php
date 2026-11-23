@@ -5,43 +5,68 @@
             <h2 class="text-2xl font-bold mb-6" style="color: #245c35;">
                 Sales Report
             </h2>
+<!-- Date Filter -->
+<div class="bg-white p-6 rounded-lg shadow mb-6">
+    <form method="GET" action="{{ route('farmer.sales.report') }}"
+          class="flex flex-wrap items-end gap-4">
 
-            <!-- Date Filter -->
-            <div class="bg-white p-6 rounded-lg shadow mb-6">
-                <form method="GET" action="{{ route('farmer.sales.report') }}"
-                      class="flex flex-wrap items-end gap-4">
+        <div>
+            <label class="block font-semibold mb-2">Start Date</label>
+            <input type="date" id="start_date" name="start_date"
+                   value="{{ $startDate }}"
+                   max="{{ $endDate }}"
+                   required
+                   class="border rounded-lg p-2">
+        </div>
 
-                    <div>
-                        <label class="block font-semibold mb-2">Start Date</label>
-                        <input type="date" name="start_date"
-                               value="{{ $startDate }}"
-                               required
-                               class="border rounded-lg p-2">
-                    </div>
+        <div>
+            <label class="block font-semibold mb-2">End Date</label>
+            <input type="date" id="end_date" name="end_date"
+                   value="{{ $endDate }}"
+                   min="{{ $startDate }}"
+                   required
+                   class="border rounded-lg p-2">
+        </div>
 
-                    <div>
-                        <label class="block font-semibold mb-2">End Date</label>
-                        <input type="date" name="end_date"
-                               value="{{ $endDate }}"
-                               required
-                               class="border rounded-lg p-2">
-                    </div>
+        <button type="submit"
+                style="background-color: #287a45; color: white; padding: 10px 20px; border-radius: 6px;">
+            Generate Report
+        </button>
+    </form>
 
-                    <button type="submit"
-                            style="background-color: #287a45; color: white; padding: 10px 20px; border-radius: 6px;">
-                        Generate Report
-                    </button>
-                </form>
-                <div class="mt-4">
-    <a href="{{ route('farmer.sales.report.export', [
-            'start_date' => $startDate,
-            'end_date' => $endDate
-        ]) }}"
-       style="display: inline-block; background-color: #166534; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-        📥 Export to Excel
-    </a>
+    <div class="mt-4">
+        <a href="{{ route('farmer.sales.report.export', [
+                'start_date' => $startDate,
+                'end_date' => $endDate
+            ]) }}"
+           style="display: inline-block; background-color: #166534; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            📥 Export to Excel
+        </a>
+    </div>
 </div>
-            </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+
+    startDate.addEventListener('change', function () {
+        endDate.min = this.value;
+
+        if (endDate.value && endDate.value < this.value) {
+            endDate.value = this.value;
+        }
+    });
+
+    endDate.addEventListener('change', function () {
+        startDate.max = this.value;
+
+        if (startDate.value && startDate.value > this.value) {
+            startDate.value = this.value;
+        }
+    });
+});
+</script>
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">

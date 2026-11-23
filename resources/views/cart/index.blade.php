@@ -259,29 +259,75 @@
 
             <form action="{{ route('checkout.store') }}" method="POST">
     @csrf
-        <div style="margin: 20px 0;">
-    <label for="payment_method"
-           style="display: block; font-weight: bold; margin-bottom: 10px;">
-        Choose Payment Method
+
+    <div style="margin: 20px 0;">
+    <label for="delivery_address" style="display: block; margin-bottom: 8px;">
+        Delivery Address
     </label>
 
-    <select
-        name="payment_method"
-        id="payment_method"
+    <textarea
+        id="delivery_address"
+        name="delivery_address"
+        rows="3"
         required
-        style="width: 100%; max-width: 350px; padding: 12px;
-               border: 1px solid #ccc; border-radius: 6px;"
+        placeholder="Enter your complete delivery address"
+        style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px;"
+    >{{ old('delivery_address') }}</textarea>
+
+    @error('delivery_address')
+        <p style="color: red; margin-top: 5px;">{{ $message }}</p>
+    @enderror
+</div>
+
+<div style="margin: 20px 0;">
+    <label for="contact_number" style="display: block; margin-bottom: 8px;">
+        Contact Number
+    </label>
+
+    <input
+        type="tel"
+        id="contact_number"
+        name="contact_number"
+        value="{{ old('contact_number') }}"
+        required
+        maxlength="30"
+        placeholder="Enter your contact number"
+        style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px;"
     >
-        <option value="">-- Select Payment Method --</option>
 
-        <option value="gcash">
-            GCash (via Xendit)
-        </option>
+    @error('contact_number')
+        <p style="color: red; margin-top: 5px;">{{ $message }}</p>
+    @enderror
+</div>
 
-        <option value="cod">
-            Cash on Delivery
-        </option>
-    </select>
+        <div style="margin: 20px 0;">
+    <p style="font-weight: bold; margin-bottom: 12px;">
+        Choose Payment Method
+    </p>
+
+    <label style="display:flex; align-items:center; gap:12px;
+        padding:15px; margin-bottom:10px; background:white;
+        border:1px solid #ddd; border-radius:8px; cursor:pointer;">
+
+        <input type="radio" name="payment_method"
+            value="gcash" required>
+
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/GCash_logo.svg"
+            alt="GCash Logo" style="width:100px; height:auto;">
+
+        <span style="font-weight:bold;">GCash (via Xendit)</span>
+    </label>
+
+    <label style="display:flex; align-items:center; gap:12px;
+        padding:15px; background:white; border:1px solid #ddd;
+        border-radius:8px; cursor:pointer;">
+
+        <input type="radio" name="payment_method"
+            value="cod" required>
+
+        <span style="font-size:25px;">💵</span>
+        <span style="font-weight:bold;">Cash on Delivery</span>
+    </label>
 </div>
     <button type="submit" class="button">
         Proceed to Checkout

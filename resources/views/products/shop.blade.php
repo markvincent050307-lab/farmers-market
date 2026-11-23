@@ -273,11 +273,26 @@
             margin-top: 10px;
         }
 
-        .message {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 6px;
-        }
+       .message {
+    padding: 12px 18px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    max-width: 450px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
         .success {
             background: #dff4e4;
@@ -331,11 +346,11 @@
 
     <main class="container">
 
-        @if (session('success'))
-            <div class="message success">
-                {{ session('success') }}
-            </div>
-        @endif
+       @if (session('success'))
+    <div class="message success" id="successMessage">
+        ✓ {{ session('success') }}
+    </div>
+@endif
 
         @if (session('error'))
             <div class="message error">
@@ -673,6 +688,23 @@
             </div>
         @endif
 
+    
     </main>
+
+    <script>
+    const successMessage = document.getElementById('successMessage');
+
+    if (successMessage) {
+        setTimeout(() => {
+            successMessage.style.transition = 'opacity 0.5s ease';
+            successMessage.style.opacity = '0';
+
+            setTimeout(() => {
+                successMessage.remove();
+            }, 500);
+        }, 3000);
+    }
+</script>
+
 </body>
 </html>
